@@ -1,0 +1,59 @@
+#!/bin/bash
+
+export PATH="/usr/local/bin:$PATH"
+
+SRC=$1
+DST="$HOME/Music/iTunes/iTunes Media/Automatically Add to iTunes"
+
+LABEL=$(xattr "$1" | grep flac_imported | wc -l)
+
+if [ "$LABEL" -eq "0" ] && [ -n "$SRC" ]; then
+    # sleep while download active
+    while [ $(ps aux | grep lftp | grep -v grep | wc -l) -gt "0" ]; do
+        sleep 5
+    done
+
+    # set parsed label 
+    xattr -w flac_imported true "$1"
+
+    FIRST=$(find "$SRC" -name "*.flac" -print | head -n 1)
+
+    # trying to extract cover from current track
+    ffmpeg -i "$FIRST" cover.jpg
+    FF=$?
+
+    # convert for test AP
+    ffmpeg -y -i "$FIRST" -c:a alac -vn "$FIRST.m4a"
+
+    # trying to embed cover
+    AtomicParsley "$FIRST.m4a" --artwork cover.jpg --overWrite
+    AP=$?
+
+    # if failed, trying download from sacad
+    if [ "${FF}" -ne "0" ] || [ "${AP}" -ne "0" ]; then
+        ffmpeg -i "$FIRST" -f ffmetadata metadata.txt
+
+        ARTIST=$(cat metadata.txt | grep -i artist= | sed -e "s/artist=//I")
+        ALBUM_ARTIST=$(cat metadata.txt | grep -i "^album.*artist=" | sed -e "s/album.*artist=//I")
+
+        ALBUM=$(cat metadata.txt | grep -i album= | sed -e "s/album=//I" | sed -e "s/(.*digipack.*)\|(.*deluxe.*)\|(.*bonus.*)\|(.*japan.*)\|(.*remaster.*)//I")
+
+        if [ "$ALBUM_ARTIST" ]; then
+            ARTIST=$ALBUM_ARTIST
+        fi
+
+        sacad -d "$ARTIST" "$ALBUM" 600 cover.jpg
+
+        rm metadata.txt
+    fi
+
+    find "$SRC" -name "*.flac" -exec ffmpeg -y -i '{}' -c:a alac -vn '{}'.m4a \;
+    find "$SRC" -name "*.m4a" -exec AtomicParsley '{}' --artwork cover.jpg --overWrite \;
+    find "$SRC" -name "*.m4a" -exec mv '{}' "$DST" \;
+
+    rm cover.jpg
+
+    /usr/bin/osascript -e 'display notification "New ALAC tracks imported " with title "iTunes"'
+fi
+
+exit 0
