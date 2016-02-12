@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ################################
-# FLAC to iTunes importer v0.1 #
+# FLAC to iTunes importer v0.2 #
 ################################
 
 export PATH="/usr/local/bin:$PATH"
@@ -9,7 +9,13 @@ export PATH="/usr/local/bin:$PATH"
 SRC=$1
 DST="$HOME/Music/iTunes/iTunes Media/Automatically Add to iTunes"
 
-LABEL=$(xattr "$1" | grep flac_imported | wc -l)
+LABEL=$(xattr "$SRC" | grep flac_imported | wc -l)
+
+COVER_NAME="converter_cover.jpg"
+META_NAME="converter_metadata.txt"
+
+COVER_PATH="$SRC/$COVER_NAME"
+META_PATH="$SRC/$META_NAME"
 
 if [ "$LABEL" -eq "0" ] && [ -n "$SRC" ]; then
 	# sleep while download active
@@ -18,44 +24,47 @@ if [ "$LABEL" -eq "0" ] && [ -n "$SRC" ]; then
     done
 
 	# set parsed label 
-	xattr -w flac_imported true "$1"
+	xattr -w flac_imported true "$SRC"
 	
 	FIRST=$(find "$SRC" -name "*.flac" -print | head -n 1)
 	
 	# trying to extract cover from current track
-	ffmpeg -i "$FIRST" "$1/converter_cover.jpg"
+	ffmpeg -i "$FIRST" "$COVER_PATH"
 	FF=$?
 	
 	# convert for test AP
 	ffmpeg -y -i "$FIRST" -c:a alac -vn "$FIRST.m4a"
 	
 	# trying to embed cover
-	AtomicParsley "$FIRST.m4a" --artwork "$1/converter_cover.jpg" --overWrite
+	AtomicParsley "$FIRST.m4a" --artwork "$COVER_PATH" --overWrite
 	AP=$?
 	
 	# if failed, trying download from sacad
 	if [ "${FF}" -ne "0" ] || [ "${AP}" -ne "0" ]; then
-	    ffmpeg -i "$FIRST" -f ffmetadata "$1/converter_metadata.txt"
+	    ffmpeg -i "$FIRST" -f ffmetadata "$META_PATH"
 	
-	    ARTIST=$(cat metadata.txt | grep -i artist= | sed -e "s/artist=//I")
-	    ALBUM_ARTIST=$(cat "$1/converter_metadata.txt" | grep -i "^album.*artist=" | sed -e "s/album.*artist=//I")
-	
-	    ALBUM=$(cat "$1/converter_metadata.txt" | grep -i album= | sed -e "s/album=//I" | sed -e "s/(.*digipack.*)\|(.*deluxe.*)\|(.*bonus.*)\|(.*japan.*)\|(.*remaster.*)//I")
+	    ARTIST=$(cat "$META_PATH" | grep -i artist= | head -1 | sed -e "s/artist=//I" | xargs)
+	    ALBUM_ARTIST=$(cat "$META_PATH" | grep -i "^album.*artist=" | head -1 | sed -e "s/album.*artist=//I" | xargs)
+	    ALBUM=$(cat "$META_PATH" | grep -i album= | head -1 | sed -e "s/album=//I" | sed -e "s/(.*digipack.*)\|(.*deluxe.*)\|(.*bonus.*)\|(.*japan.*)\|(.*remaster.*)\|(.*mfsl.*)//I" | xargs)
 	
 	    if [ "$ALBUM_ARTIST" ]; then
 	        ARTIST=$ALBUM_ARTIST
 	    fi
 	
-	    sacad -d "$ARTIST" "$ALBUM" 600 "$1/converter_cover.jpg"
+        echo "Detected artist: $ARTIST"
+        echo "Detected album: $ALBUM"
+        echo "Path: $COVER_PATH"
+
+	    sacad -d "$ARTIST" "$ALBUM" 600 "$COVER_PATH"
 	
-	    rm "$1/converter_metadata.txt"
+	    rm "$META_PATH"
 	fi
 	
 	find "$SRC" -name "*.flac" -exec ffmpeg -y -i '{}' -c:a alac -vn '{}'.m4a \;
-	find "$SRC" -name "*.m4a" -exec AtomicParsley '{}' --artwork "$1/converter_cover.jpg" --overWrite \;
+	find "$SRC" -name "*.m4a" -exec AtomicParsley '{}' --artwork "$COVER_PATH" --overWrite \;
 	find "$SRC" -name "*.m4a" -exec mv '{}' "$DST" \;
 	
-	rm "$1/converter_cover.jpg"
+	rm "$COVER_PATH"
 	
 	/usr/bin/osascript -e 'display notification "New ALAC tracks imported " with title "iTunes"'
 fi
