@@ -78,39 +78,39 @@ if [ "$LABEL" -eq "0" ] &amp;&amp; [ -n "$SRC" ]; then
 	FIRST=$(find "$SRC" -name "*.flac" -print | head -n 1)
 	
 	# trying to extract cover from current track
-	ffmpeg -i "$FIRST" cover.jpg
+	ffmpeg -i "$FIRST" "$1/converter_cover.jpg"
 	FF=$?
 	
 	# convert for test AP
 	ffmpeg -y -i "$FIRST" -c:a alac -vn "$FIRST.m4a"
 	
 	# trying to embed cover
-	AtomicParsley "$FIRST.m4a" --artwork cover.jpg --overWrite
+	AtomicParsley "$FIRST.m4a" --artwork "$1/converter_cover.jpg" --overWrite
 	AP=$?
 	
 	# if failed, trying download from sacad
 	if [ "${FF}" -ne "0" ] || [ "${AP}" -ne "0" ]; then
-	    ffmpeg -i "$FIRST" -f ffmetadata metadata.txt
+	    ffmpeg -i "$FIRST" -f ffmetadata "$1/converter_metadata.txt"
 	
 	    ARTIST=$(cat metadata.txt | grep -i artist= | sed -e "s/artist=//I")
-	    ALBUM_ARTIST=$(cat metadata.txt | grep -i "^album.*artist=" | sed -e "s/album.*artist=//I")
+	    ALBUM_ARTIST=$(cat "$1/converter_metadata.txt" | grep -i "^album.*artist=" | sed -e "s/album.*artist=//I")
 	
-	    ALBUM=$(cat metadata.txt | grep -i album= | sed -e "s/album=//I" | sed -e "s/(.*digipack.*)\|(.*deluxe.*)\|(.*bonus.*)\|(.*japan.*)\|(.*remaster.*)//I")
+	    ALBUM=$(cat "$1/converter_metadata.txt" | grep -i album= | sed -e "s/album=//I" | sed -e "s/(.*digipack.*)\|(.*deluxe.*)\|(.*bonus.*)\|(.*japan.*)\|(.*remaster.*)//I")
 	
 	    if [ "$ALBUM_ARTIST" ]; then
 	        ARTIST=$ALBUM_ARTIST
 	    fi
 	
-	    sacad -d "$ARTIST" "$ALBUM" 600 cover.jpg
+	    sacad -d "$ARTIST" "$ALBUM" 600 "$1/converter_cover.jpg"
 	
-	    rm metadata.txt
+	    rm "$1/converter_metadata.txt"
 	fi
 	
 	find "$SRC" -name "*.flac" -exec ffmpeg -y -i '{}' -c:a alac -vn '{}'.m4a \;
-	find "$SRC" -name "*.m4a" -exec AtomicParsley '{}' --artwork cover.jpg --overWrite \;
+	find "$SRC" -name "*.m4a" -exec AtomicParsley '{}' --artwork "$1/converter_cover.jpg" --overWrite \;
 	find "$SRC" -name "*.m4a" -exec mv '{}' "$DST" \;
 	
-	rm cover.jpg
+	rm "$1/converter_cover.jpg"
 	
 	/usr/bin/osascript -e 'display notification "New ALAC tracks imported " with title "iTunes"'
 fi
@@ -225,12 +225,10 @@ exit 0</string>
 						<string>4</string>
 					</dict>
 				</dict>
-				<key>conversionLabel</key>
-				<integer>0</integer>
 				<key>isViewVisible</key>
 				<true/>
 				<key>location</key>
-				<string>631.500000:612.000000</string>
+				<string>487.500000:587.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/Run Shell Script.action/Contents/Resources/English.lproj/main.nib</string>
 			</dict>
@@ -242,8 +240,6 @@ exit 0</string>
 	<dict/>
 	<key>workflowMetaData</key>
 	<dict>
-		<key>folderActionFolderPath</key>
-		<string>~/The Dump/test</string>
 		<key>workflowTypeIdentifier</key>
 		<string>com.apple.Automator.folderAction</string>
 	</dict>
