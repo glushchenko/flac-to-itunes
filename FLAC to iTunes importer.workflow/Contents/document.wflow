@@ -59,11 +59,23 @@
 				<key>ActionParameters</key>
 				<dict>
 					<key>COMMAND_STRING</key>
-					<string>export PATH="/usr/local/bin:$PATH"
+					<string>################################
+# FLAC to iTunes importer v0.4 #
+################################
+
+export PATH="/usr/local/bin:$PATH"
 
 processAlbumFolder() {
+	# set parsed label 
+	xattr -w flac_imported true "$SRC"
+
 	SRC=$1
 	DST="$HOME/Music/iTunes/iTunes Media/Automatically Add to iTunes"
+
+	# sleep while download active
+	while [ $(ps aux | grep lftp | grep -v grep | wc -l) -gt "0" ]; do
+		sleep 5
+	done
 
 	LABEL=$(xattr "$SRC" | grep flac_imported | wc -l)
 	FOUND=$(find "$SRC" -name "*.flac" | wc -l)
@@ -75,14 +87,6 @@ processAlbumFolder() {
 	META_PATH="$SRC/$META_NAME"
 
 	if [ "$LABEL" -eq "0" ] &amp;&amp; [ -n "$SRC" ] &amp;&amp; [ "$FOUND" -gt "0" ]; then
-		# set parsed label 
-		xattr -w flac_imported true "$SRC"
-
-		# sleep while download active
-	    while [ $(ps aux | grep lftp | grep -v grep | wc -l) -gt "0" ]; do
-	        sleep 5
-	    done
-
 		FIRST=$(find "$SRC" -name "*.flac" -print | head -n 1)
 		
 		# trying to extract cover from current track
@@ -135,21 +139,22 @@ then
     echo "flac to itunes is running already."
     exit
 else
-	echo "Base: $1" &gt;&gt; /tmp/flac_imported
-
     touch "$LOCK"
-	BASE=$(dirname "$1")
 
-	IFS=$'\n'
+	while [ $(find "$BASE/"* -maxdepth 0 -type d | wc -l) -gt $(find "$BASE/"* -maxdepth 0 -type d -exec xattr "{}" \+ | grep flac_imported | wc -l) ]; do
+		BASE=$(dirname "$1")
 
-	for DIRECTORY in $(find "$BASE/"* -maxdepth 0 -type d); 
-	do
-		IMPORTED=$(xattr "$DIRECTORY" | grep flac_imported | wc -l)
-		if [ "$IMPORTED" -eq "0" ]; then
-			echo "Album: $DIRECTORY" &gt;&gt; /tmp/flac_imported
+		IFS=$'\n'
 
-			processAlbumFolder "$DIRECTORY"
-		fi
+		for DIRECTORY in $(find "$BASE/"* -maxdepth 0 -type d); 
+		do
+			IMPORTED=$(xattr "$DIRECTORY" | grep flac_imported | wc -l)
+			if [ "$IMPORTED" -eq "0" ]; then
+				echo "Album: $DIRECTORY" &gt;&gt; /tmp/flac_imported
+
+				processAlbumFolder "$DIRECTORY"
+			fi
+		done
 	done
 
 	rm -f "$LOCK"
@@ -268,7 +273,7 @@ fi</string>
 				<key>isViewVisible</key>
 				<true/>
 				<key>location</key>
-				<string>769.000000:604.000000</string>
+				<string>769.000000:674.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/Run Shell Script.action/Contents/Resources/English.lproj/main.nib</string>
 			</dict>
