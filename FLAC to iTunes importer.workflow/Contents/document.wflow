@@ -66,6 +66,7 @@ processAlbumFolder() {
 	DST="$HOME/Music/iTunes/iTunes Media/Automatically Add to iTunes"
 
 	LABEL=$(xattr "$SRC" | grep flac_imported | wc -l)
+	FOUND=$(find "$SRC" -name "*.flac" | wc -l)
 
 	COVER_NAME="converter_cover.jpg"
 	META_NAME="converter_metadata.txt"
@@ -73,7 +74,7 @@ processAlbumFolder() {
 	COVER_PATH="$SRC/$COVER_NAME"
 	META_PATH="$SRC/$META_NAME"
 
-	if [ "$LABEL" -eq "0" ] &amp;&amp; [ -n "$SRC" ]; then
+	if [ "$LABEL" -eq "0" ] &amp;&amp; [ -n "$SRC" ] &amp;&amp; [ "$FOUND" -gt "0" ]; then
 		# set parsed label 
 		xattr -w flac_imported true "$SRC"
 
@@ -115,7 +116,7 @@ processAlbumFolder() {
 		
 		    rm "$META_PATH"
 		fi
-		
+
 		find "$SRC" -name "*.flac" -exec ffmpeg -y -i '{}' -c:a alac -vn '{}'.m4a \;
 		find "$SRC" -name "*.m4a" -exec AtomicParsley '{}' --artwork "$COVER_PATH" --overWrite \;
 		find "$SRC" -name "*.m4a" -exec mv '{}' "$DST" \;
@@ -267,7 +268,7 @@ fi</string>
 				<key>isViewVisible</key>
 				<true/>
 				<key>location</key>
-				<string>769.000000:610.000000</string>
+				<string>769.000000:604.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/Run Shell Script.action/Contents/Resources/English.lproj/main.nib</string>
 			</dict>
