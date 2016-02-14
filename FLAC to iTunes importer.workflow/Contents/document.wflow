@@ -60,15 +60,12 @@
 				<dict>
 					<key>COMMAND_STRING</key>
 					<string>################################
-# FLAC to iTunes importer v0.4 #
+# FLAC to iTunes importer v0.5 #
 ################################
 
 export PATH="/usr/local/bin:$PATH"
 
 processAlbumFolder() {
-	# set parsed label 
-	xattr -w flac_imported true "$SRC"
-
 	SRC=$1
 	DST="$HOME/Music/iTunes/iTunes Media/Automatically Add to iTunes"
 
@@ -85,6 +82,9 @@ processAlbumFolder() {
 
 	COVER_PATH="$SRC/$COVER_NAME"
 	META_PATH="$SRC/$META_NAME"
+
+	# set parsed label 
+	xattr -w flac_imported true "$SRC"
 
 	if [ "$LABEL" -eq "0" ] &amp;&amp; [ -n "$SRC" ] &amp;&amp; [ "$FOUND" -gt "0" ]; then
 		FIRST=$(find "$SRC" -name "*.flac" -print | head -n 1)
@@ -112,11 +112,16 @@ processAlbumFolder() {
 		        ARTIST=$ALBUM_ARTIST
 		    fi
 		
-	        echo "Detected artist: $ARTIST"
-	        echo "Detected album: $ALBUM"
-	        echo "Path: $COVER_PATH"
+		    SACAD=$(sacad -d "$ARTIST" "$ALBUM" 600 "$COVER_PATH" 2&gt;&amp;1)
 
-		    sacad -d "$ARTIST" "$ALBUM" 600 "$COVER_PATH"
+    		if [[ $SACAD == *"No results"* ]]
+    		then
+        		ALBUM=$(cat "$META_PATH" | grep -i album= | head -1 | sed -e "s/album=//I" | sed -e "s/(.*)//I" | xargs)
+				sacad -d "$ARTIST" "$ALBUM" 600 "$COVER_PATH"
+    		fi
+
+	        echo "Detected artist/album: '$ARTIST/$ALBUM'"
+	        echo "Path: $COVER_PATH"
 		
 		    rm "$META_PATH"
 		fi
@@ -273,7 +278,7 @@ fi</string>
 				<key>isViewVisible</key>
 				<true/>
 				<key>location</key>
-				<string>769.000000:674.000000</string>
+				<string>769.000000:624.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/Run Shell Script.action/Contents/Resources/English.lproj/main.nib</string>
 			</dict>
