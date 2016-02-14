@@ -1,6 +1,6 @@
 # FLAC to iTunes 
 
-Automatic encoding and covers embedding script.
+Automatic encoding and covers embedding workflow for OS X.
 
 ## Installation 
 
