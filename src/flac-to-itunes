@@ -1,14 +1,19 @@
 #!/bin/bash
 
-################################
-# FLAC to iTunes importer v0.5 #
-################################
+##################################
+# FLAC to iTunes importer v0.5.1 #
+##################################
 
 export PATH="/usr/local/bin:$PATH"
 
 processAlbumFolder() {
 	SRC=$1
 	DST="$HOME/Music/iTunes/iTunes Media/Automatically Add to iTunes"
+
+	if [ ! -d "$DST" ]; then
+		ln -s $HOME/Music/iTunes/iTunes\ Media/Automatically\ Add\ to\ iTunes.localized $HOME/Music/iTunes/iTunes\ Media/Automatically\ Add\ to\ iTunes
+		mkdir -p $DST		
+	fi
 
 	# sleep while download active
 	while [ $(ps aux | grep lftp | grep -v grep | wc -l) -gt "0" ]; do
