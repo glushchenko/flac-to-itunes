@@ -1,1 +1,1 @@
-Moved to https://github.com/glushchenko/macos-automation
+Moved to https://github.com/glushchenko/mac-automation
